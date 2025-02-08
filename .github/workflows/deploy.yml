@@ -1,26 +1,53 @@
-name: Deploy
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 on:
-  workflow_dispatch:
   push:
-    branches: [ main, master ]
-    
+    branches: [main, master]
+  workflow_dispatch:
+
+name: shiny-deploy
+
 jobs:
-  build:
+  shiny-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      SHINY_ACCOUNT: ${{ secrets.SHINY_ACCOUNT }}
+      SHINY_TOKEN: ${{ secrets.SHINY_TOKEN }}
+      SHINY_SECRET: ${{ secrets.SHINY_SECRET }}
+      WORK_DIR: ${{ github.workspace }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Build image
-        run: cd app && docker build -t main .
-      - name: push
-        run: >
-          # echo {{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u jimbrig --password-stdin && \
-          docker login ghcr.io && docker tag main ghcr.io/jimbrig/jimsghstars:latest && docker push ghcr.io/jimbrig/jimsghstars:latest
-      - name: execute
-        run: >
-          docker run 
-          -e SHINY_ACC_NAME=${{ secrets.SHINY_ACC_NAME }} 
-          -e TOKEN=${{ secrets.TOKEN }} 
-          -e SECRET=${{ secrets.SECRET }} 
-          -e MASTERNAME=${{ secrets.MASTER_NAME }} 
-          main
-      
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      #- uses: r-lib/actions/setup-renv@v2
+
+      - name: Install Package Dependencies
+        run: |
+          install.packages(c("rsconnect", "automagic"))
+          setwd(Sys.getenv("WORK_DIR"))
+          automagic::install_deps_file()
+        shell: Rscript {0}
+
+      - name: Retrieve GitHub Stars Data
+        run: |
+          source("get_github_stars.R")
+        shell: Rscript {0}
+
+      - name: Commit and Push Changes
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authorize and deploy app
+        run: |
+          rsconnect::setAccountInfo(name = Sys.getenv("SHINY_ACCOUNT"), token = Sys.getenv("SHINY_TOKEN"), secret = Sys.getenv("SHINY_SECRET"))
+          rsconnect::deployApp("app")
+        shell: Rscript {0}
+

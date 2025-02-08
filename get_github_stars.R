@@ -5,6 +5,7 @@ library(tibble)
 library(dplyr)
 library(qs)
 library(fs)
+library(lubridate)
 
 mystars <- gh::gh("/users/:username/starred", username = "jimbrig", .limit = Inf)
 
@@ -34,7 +35,10 @@ out <- tibble::tibble(
     dplyr::desc(stargazers)
   )
 
-fs::dir_create("data")
+if (!fs::dir_exists("data")) { fs::dir_create("data") }
 
-qs::qsave(out, paste0("data/", Sys.Date(), "-jimbrig-github-starred-repos.qs"))
+out_file <- paste0("data/", Sys.Date(), "-jimbrig-github-starred-repos.qs")
+shiny_file <- "app/data/stars-latest.qs"
 
+qs::qsave(out, out_file)
+qs::qsave(out, shiny_file)
