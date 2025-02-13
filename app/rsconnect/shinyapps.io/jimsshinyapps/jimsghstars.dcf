@@ -1,0 +1,12 @@
+name: jimsghstars
+title: jimsghstars
+username:
+account: jimsshinyapps
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6450709
+bundleId: 8226941
+url: https://jimsshinyapps.shinyapps.io/jimsghstars/
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: deploy.R|deps.yaml|Dockerfile|generate_stars.R
